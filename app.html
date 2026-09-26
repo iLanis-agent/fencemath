@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FenceMath - honest fence math</title>
+<style>
+  :root { --bg:#131511; --card:#1c2018; --ink:#edf0e4; --dim:#a5ad94; --acc:#c98f4e; --hot:#8fd98a; --cold:#d98a8a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding:28px 24px 8px; max-width:980px; margin:0 auto; display:flex; justify-content:space-between; align-items:baseline; }
+  h1 { margin:0; font-size:28px; }
+  h1 span { color:var(--acc); }
+  nav a { color:var(--dim); text-decoration:none; font-size:14px; }
+  main { max-width:980px; margin:0 auto; padding:16px 24px 60px; display:grid; gap:18px; }
+  .card { background:var(--card); border-radius:14px; padding:20px; }
+  .card h2 { margin:0 0 12px; font-size:13px; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; }
+  label { display:block; font-size:13px; color:var(--dim); margin-bottom:4px; }
+  input, select { width:100%; background:#14170f; border:1px solid #3d452f; color:var(--ink); border-radius:8px; padding:9px 10px; font-size:15px; }
+  .hint { font-size:12.5px; color:var(--dim); margin-top:10px; }
+  button { cursor:pointer; border:0; border-radius:9px; padding:11px 16px; font-size:15px; background:var(--acc); color:#241708; font-weight:600; }
+  button.ghost { background:#31382a; color:var(--ink); font-weight:500; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .verdict { font-size:17px; line-height:1.65; }
+  .verdict b { color:var(--acc); }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:16px; }
+  .stat { background:#14170f; border-radius:10px; padding:12px; }
+  .stat .v { font-size:19px; font-weight:700; color:var(--acc); }
+  .stat .k { font-size:12px; color:var(--dim); margin-top:2px; }
+  .note { margin-top:14px; font-size:13.5px; color:var(--dim); }
+  .note b { color:var(--acc); font-weight:600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fence<span>Math</span></h1>
+  <nav><a href="index.html">home</a></nav>
+</header>
+<main>
+  <section class="card">
+    <h2>The run</h2>
+    <div class="grid">
+      <div><label>Fence length (ft)</label><input id="len" type="number" value="50"></div>
+      <div><label>Post spacing</label><select id="spacing">
+        <option value="6">6 ft (windy sites)</option>
+        <option value="8" selected>8 ft (standard)</option>
+      </select></div>
+      <div><label>Fence height</label><select id="height">
+        <option value="4">4 ft picket</option>
+        <option value="6" selected>6 ft privacy</option>
+        <option value="8">8 ft fortress</option>
+      </select></div>
+      <div><label>Gates</label><input id="gates" type="number" value="1"></div>
+      <div><label>Picket style</label><select id="picket">
+        <option value="5.5,0.5" selected>5.5 in board, 0.5 in gap</option>
+        <option value="5.5,0">5.5 in board, no gap (privacy)</option>
+        <option value="3.5,2.5">3.5 in picket, 2.5 in gap (classic)</option>
+      </select></div>
+      <div><label>Waste allowance</label><select id="waste">
+        <option value="0.10" selected>10% (honest)</option>
+        <option value="0.15">15% (first fence ever)</option>
+        <option value="0">0% (how projects stall)</option>
+      </select></div>
+    </div>
+    <p class="hint">Every first fence ends with one emergency run back to the store. The 10% waste line is the difference between finishing Saturday and finishing next weekend.</p>
+    <div class="row">
+      <button id="run">Price my fence honestly</button>
+      <button class="ghost" data-preset="privacy">50 ft privacy run</button>
+      <button class="ghost" data-preset="side">small side yard</button>
+      <button class="ghost" data-preset="fortress">the 8 ft fortress</button>
+    </div>
+  </section>
+
+  <section class="card" id="result" hidden>
+    <h2>The shopping list</h2>
+    <p class="verdict" id="verdictText"></p>
+    <div class="stats" id="stats"></div>
+    <p class="note" id="advice"></p>
+  </section>
+
+  <section class="card">
+    <h2>The post everyone forgets</h2>
+    <p class="note">A fence of N sections needs <b>N+1 posts</b> - the last one holds the end of the run, and it is the one nobody buys. Holes go <b>a third of the post deep plus a 6-inch gravel base</b>, and a 12-inch hole around a 4x4 drinks about <b>five bags of concrete</b> on a 6-foot fence, not the two the guy at the store said. Pickets are simple division across the run - but only if you count the <b>gap</b> as part of each board. And rails scale with height: two up to 5 feet, <b>three for a 6-footer</b>, or the middle bows by the second summer.</p>
+  </section>
+</main>
+<script src="engine.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  var PRESETS = {
+    privacy: { len: 50, spacing: '8', height: '6', gates: 1, picket: '5.5,0', waste: '0.10' },
+    side: { len: 24, spacing: '8', height: '4', gates: 0, picket: '3.5,2.5', waste: '0.10' },
+    fortress: { len: 80, spacing: '6', height: '8', gates: 1, picket: '5.5,0', waste: '0.15' }
+  };
+  document.querySelectorAll('[data-preset]').forEach(function (b) {
+    b.onclick = function () {
+      var p = PRESETS[b.dataset.preset];
+      Object.keys(p).forEach(function (k) { $(k).value = p[k]; });
+      run();
+    };
+  });
+
+  function run() {
+    var len = +$('len').value || 0;
+    var spacing = +$('spacing').value;
+    var height = +$('height').value;
+    var gates = +$('gates').value || 0;
+    var pw = $('picket').value.split(',').map(Number);
+    var waste = +$('waste').value;
+    if (len <= 0) { alert('Enter a fence length.'); return; }
+
+    var m = FenceMath.materialCost(len, spacing, height, pw[0], pw[1], gates, waste);
+    var hole = FenceMath.holeDepthIn(height);
+    var perHole = FenceMath.concreteBagsPerHole(height);
+
+    $('verdictText').innerHTML = 'A <b>' + len + ' ft</b> run at ' + spacing + ' ft spacing is <b>' +
+      FenceMath.sections(len, spacing) + ' sections and ' + m.posts + ' posts</b> - the +1 for the end of the run is already in there. ' +
+      'Materials land at <b>$' + m.total.toLocaleString('en-US') + '</b>' +
+      (gates ? ' including the gate kit' : '') + ', before labor, stain, and the inevitable second trip.';
+
+    var stats = [
+      { v: m.posts, k: 'posts (yes, the +1 is in)' },
+      { v: m.pickets, k: 'pickets with waste' },
+      { v: m.rails, k: 'rails (' + FenceMath.railsPerSection(height) + ' per section)' },
+      { v: m.concrete, k: 'bags of concrete (' + perHole + '/hole)' },
+      { v: hole + '"', k: 'hole depth (1/3 rule + base)' },
+      { v: '$' + m.total.toLocaleString('en-US'), k: 'materials total' }
+    ];
+    $('stats').innerHTML = stats.map(function (x) {
+      return '<div class="stat"><div class="v">' + x.v + '</div><div class="k">' + x.k + '</div></div>';
+    }).join('');
+
+    var advice;
+    if (waste === 0) {
+      advice = 'Zero waste is how fences stall at 94% done. One warped 4x4 in the bundle and you are driving back Saturday afternoon - buy the 10% and return what survives.';
+    } else if (height >= 6 && spacing > 6) {
+      advice = 'A 6 ft privacy fence at 8 ft spacing is a sail in wind country. If your winters have opinions, drop to 6 ft spacing and let the post count rise - it is cheaper than rebuilding a section.';
+    } else if (gates) {
+      advice = 'Set the gate posts first and give them an extra bag of concrete each - every sag in year two traces back to the hinge post. Hang the gate before the pickets, not after.';
+    } else {
+      advice = 'Dig all holes before setting anything. Soil changes every 20 feet and the hole count is where fence estimates go to die.';
+    }
+    $('advice').innerHTML = advice;
+
+    $('result').hidden = false;
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  $('run').onclick = run;
+})();
+</script>
+</body>
+</html>
